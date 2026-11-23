@@ -1,0 +1,13 @@
+{
+  "name": "waypoint",
+  "private": true,
+  "scripts": {
+    "test": "node --test tests/*.test.cjs",
+    "format": "prettier --write index.html css/*.css js/*.js js/views/*.js service-worker.js tests/*.cjs"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.17",
+    "@playwright/test": "1.65.1",
+    "prettier": "3.10.1"
+  }
+}
