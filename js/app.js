@@ -52,11 +52,15 @@
     categoryFilter = "",
     typeFilter = "",
     dialog = null;
+  let cloud = null;
   const save = () => {
     try {
-      localStorage.setItem(KEY, JSON.stringify(db));
+      if (cloud?.signedIn) cloud.change(db);
+      else localStorage.setItem(KEY, JSON.stringify(db));
     } catch (e) {
-      alert("Unable to save locally. Try exporting a backup.");
+      alert(
+        "Unable to save on this device. Please keep this page open and try again.",
+      );
     }
   };
   const esc = (s) =>
@@ -73,7 +77,9 @@
     );
   const project = (id) => db.projects.find((p) => p.id === id);
   const category = (t) =>
-    t.category || project(t.projectId)?.category || "Inbox";
+    project(t.projectId)
+      ? project(t.projectId).category || "Uncategorized"
+      : "Standalone";
   const type = (t) => t.type || project(t.projectId)?.type || "Want";
   const priorityOrder = { High: 0, Normal: 1, Low: 2 };
   const dateKey = (s) => s || "9999-12-31";
@@ -92,8 +98,8 @@
     ["Paused", "Someday", "Completed", "Canceled"].includes(
       project(t.projectId)?.status,
     );
-  const inbox = (t) => !t.category && !t.projectId;
-  const ready = (t) => !inactive(t) && !inbox(t);
+  const inbox = (t) => !project(t.projectId);
+  const ready = (t) => !inactive(t);
   const fmtDate = (s) =>
     s
       ? new Date(s + "T12:00:00").toLocaleDateString(undefined, {
@@ -116,11 +122,12 @@
         "☷",
         "All tasks",
         count((t) => !["Completed", "Canceled"].includes(t.status)),
-      )}${navItem("inbox", "◫", "Inbox", count(inbox))}<div class="sidebar-foot">Sort: Next step date → Priority → Due date<br><br>Saved locally in this browser.</div></aside><main class="main"><header class="top"><div class="top-heading"><div class="eyebrow">Waypoint / ${esc(view === "dashboard" ? "Overview" : view)}</div><h1 class="title">${esc(title)}</h1><p class="sub">${sub}</p></div><div class="top-actions"><button class="btn primary task-action" data-action="newTask">+ Task</button><button class="btn secondary-action" data-action="newProject">+ Project</button><button class="btn secondary-action" data-action="menu">⚙ Backup</button></div></header>${content}</main><nav class="mobile-nav">${[
+      )}${navItem("inbox", "◫", "Inbox", count(inbox))}${navItem("settings", "&#9881;", "Settings")}<div class="sidebar-foot">Sort: Next step date → Priority → Due date<br><br>Local storage with optional cloud sync.</div></aside><main class="main"><header class="top"><div class="top-heading"><div class="eyebrow">Waypoint / ${esc(view === "dashboard" ? "Overview" : view)}</div><h1 class="title">${esc(title)}</h1><p class="sub">${sub}</p></div><div class="top-actions"><button class="btn primary task-action" data-action="newTask">+ Task</button></div></header>${content}</main><nav class="mobile-nav">${[
         ["dashboard", "⌂", "Home"],
         ["projects", "▦", "Projects"],
         ["tasks", "☷", "Tasks"],
         ["inbox", "◫", "Inbox"],
+        ["settings", "\u2699", "Settings"],
       ]
         .map(
           ([id, i, n]) =>
@@ -198,6 +205,7 @@
     else if (view === "projects") projectsView();
     else if (view === "project") projectDetail();
     else if (view === "tasks") allTasks();
+    else if (view === "settings") settingsView();
     else inboxView();
   }
   const field = (name, label, value = "", type = "text", extra = "") =>
@@ -227,13 +235,9 @@
     };
     dialog = { type: "task", id };
     const ps = [["", "Standalone"], ...db.projects.map((p) => [p.id, p.name])];
-    const cats = [
-      ["", "Inherit from project / Inbox"],
-      ...db.categories.map((x) => [x, x]),
-    ];
     showModal(
       `${id ? "Edit task" : "New task"}`,
-      `<form id="item-form" class="form-grid">${field("title", "Task title", t.title, "text", "full")}${selectField("projectId", "Project", ps, t.projectId)}${selectField("category", "Category", cats, t.category)}${selectField(
+      `<form id="item-form" class="form-grid">${field("title", "Task title", t.title, "text", "full")}${selectField("projectId", "Project", ps, t.projectId)}${selectField(
         "type",
         "Need / Want",
         [
@@ -272,7 +276,7 @@
     let p = db.projects.find((x) => x.id === id) || {
       name: "",
       description: "",
-      category: "Hobbies",
+      category: db.categories[0] || "",
       type: "Want",
       priority: "Normal",
       status: "Active",
@@ -284,7 +288,7 @@
       `<form id="item-form" class="form-grid">${field("name", "Project name", p.name, "text", "full")}${selectField(
         "category",
         "Category",
-        db.categories.map((x) => [x, x]),
+        [["", "Uncategorized"], ...db.categories.map((x) => [x, x])],
         p.category,
       )}${selectField(
         "type",
@@ -308,7 +312,7 @@
   }
   function showModal(title, form, id) {
     document.getElementById("modal-root").innerHTML =
-      `<div class="dialog-backdrop" id="backdrop"><section class="dialog" role="dialog" aria-modal="true" aria-labelledby="dialogtitle"><div class="top" style="margin-bottom:18px"><div><h2 id="dialogtitle">${esc(title)}</h2><p class="sub">Changes save to this browser.</p></div><button class="btn small" data-action="close">✕ Close</button></div>${form}<div class="dialog-actions"><div>${id ? `<button class="btn danger" data-action="delete">Delete</button>` : ""}</div><div><button class="btn ghost" data-action="close">Cancel</button><button class="btn primary" data-action="save">Save</button></div></div></section></div>`;
+      `<div class="dialog-backdrop" id="backdrop"><section class="dialog editor-dialog" role="dialog" aria-modal="true" aria-labelledby="dialogtitle"><div class="top" style="margin-bottom:18px"><div><h2 id="dialogtitle">${esc(title)}</h2><p class="sub">Changes save on this device and sync when signed in.</p></div><button class="btn small" data-action="close">✕ Close</button></div>${form}<div class="dialog-actions"><div>${id ? `<button class="btn danger" data-action="delete">Delete</button>` : ""}</div><div><button class="btn ghost" data-action="close">Cancel</button><button class="btn primary" data-action="save">Save</button></div></div></section></div>`;
     document
       .querySelector(
         '#item-form input[name="title"],#item-form input[name="name"]',
@@ -367,6 +371,9 @@
         createdAt: existing?.createdAt || now,
         updatedAt: now,
       };
+      delete item.category;
+      if (item.status === "Completed" && existing?.status !== "Completed")
+        completionSound();
       if (!existing) {
         db.tasks.push(item);
       } else {
@@ -435,14 +442,68 @@
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
-  function menu() {
-    document.querySelector("#backup-panel")?.remove();
-    let el = document.createElement("div");
-    el.id = "backup-panel";
-    el.className = "secondary-panel";
-    el.innerHTML = `<div class="section-head"><h2>Data & backup</h2></div><p class="hint">Data stays in this browser and does not automatically sync between devices. Export a backup regularly. Import replaces the current data.</p><div class="actions"><button class="btn small" data-action="export">Export JSON backup</button><button class="btn small" data-action="import">Import JSON backup</button><button class="btn small danger" data-action="clear">Reset all data</button></div>`;
-    document.querySelector(".main")?.append(el);
+  function settingsView() {
+    base(
+      "Settings",
+      "Make Waypoint your own and keep a backup of your work.",
+      `
+      <section class="secondary-panel"><h2>Project categories</h2><p class="hint">Tasks use their project's category. Tasks without a project are Standalone.</p>
+      <form id="category-form" class="actions"><input class="field" name="category" aria-label="New category" placeholder="New category" maxlength="80" required><button class="btn primary" type="submit">Add category</button></form>
+      <div class="category-list">${db.categories.map((name, index) => `<div class="category-row"><span>${esc(name)}</span><div class="actions"><button class="btn small" aria-label="Edit ${esc(name)}" data-action="renameCategory" data-category-index="${index}">Edit</button><button class="btn small danger" aria-label="Remove ${esc(name)}" data-action="removeCategory" data-category-index="${index}">Remove</button></div></div>`).join("") || '<p class="hint">Add your first category above.</p>'}</div></section>
+      <section class="secondary-panel"><h2>Data & backup</h2><p class="hint">Export downloads a backup. Import replaces your current data and syncs the replacement when signed in.</p><div class="actions"><button class="btn" data-action="export">Export JSON backup</button><button class="btn" data-action="import">Import JSON backup</button><button class="btn danger" data-action="clear">Reset all data</button></div></section>`,
+    );
   }
+  function categoryName(value, previous) {
+    const name = value?.trim();
+    if (!name) return null;
+    if (
+      name.toLowerCase() === "standalone" ||
+      db.categories.some(
+        (c) => c !== previous && c.toLowerCase() === name.toLowerCase(),
+      )
+    ) {
+      alert(
+        "Choose a unique category name. Standalone is reserved for tasks without projects.",
+      );
+      return null;
+    }
+    return name;
+  }
+  let audioContext;
+  function completionSound() {
+    try {
+      const Audio = window.AudioContext || window.webkitAudioContext;
+      if (!Audio) return;
+      audioContext ||= new Audio();
+      audioContext.resume().catch(() => {});
+      const start = audioContext.currentTime;
+      [659.25, 880, 1318.51].forEach((frequency, index) => {
+        const tone = audioContext.createOscillator(),
+          gain = audioContext.createGain(),
+          at = start + index * 0.065;
+        tone.type = "sine";
+        tone.frequency.value = frequency;
+        gain.gain.setValueAtTime(0, at);
+        gain.gain.linearRampToValueAtTime(0.075, at + 0.012);
+        gain.gain.exponentialRampToValueAtTime(0.001, at + 0.19);
+        tone.connect(gain).connect(audioContext.destination);
+        tone.start(at);
+        tone.stop(at + 0.2);
+      });
+    } catch (_) {
+      /* Audio must never interrupt saving. */
+    }
+  }
+  window.addEventListener("submit", (event) => {
+    if (event.target.id !== "category-form") return;
+    event.preventDefault();
+    const name = categoryName(new FormData(event.target).get("category"));
+    if (name) {
+      db.categories.push(name);
+      save();
+      draw();
+    }
+  });
   // EVENTS: one listener handles interactions on dynamically rendered screens.
   window.addEventListener("click", (e) => {
     let b = e.target.closest(
@@ -482,7 +543,12 @@
         t.completedAt = e.target.checked ? new Date().toISOString() : null;
         t.updatedAt = new Date().toISOString();
         save();
-        draw();
+        if (t.status === "Completed") {
+          completionSound();
+          b.closest(".task")?.classList.add("task-completing");
+          b.disabled = true;
+          setTimeout(draw, 550);
+        } else draw();
       }
       return;
     }
@@ -518,7 +584,9 @@
         break;
       case "clear":
         if (
-          confirm("Permanently reset all locally saved tasks and projects?")
+          confirm(
+            "Delete all tasks and projects? When signed in, this deletion syncs to your other devices.",
+          )
         ) {
           db = initial();
           save();
@@ -526,9 +594,42 @@
           draw();
         }
         break;
-      case "menu":
-        menu();
+      case "renameCategory": {
+        const old = db.categories[Number(b.dataset.categoryIndex)];
+        const name = categoryName(prompt("Category name", old), old);
+        if (!name || name === old) break;
+        db.categories = db.categories.map((c) => (c === old ? name : c));
+        db.projects.forEach((p) => {
+          if (p.category === old) {
+            p.category = name;
+            p.updatedAt = new Date().toISOString();
+          }
+        });
+        if (categoryFilter === old) categoryFilter = name;
+        save();
+        draw();
         break;
+      }
+      case "removeCategory": {
+        const old = db.categories[Number(b.dataset.categoryIndex)];
+        if (
+          !confirm(
+            `Remove "${old}"? Projects using it will become Uncategorized. Tasks will be kept.`,
+          )
+        )
+          break;
+        db.categories = db.categories.filter((c) => c !== old);
+        db.projects.forEach((p) => {
+          if (p.category === old) {
+            p.category = "";
+            p.updatedAt = new Date().toISOString();
+          }
+        });
+        if (categoryFilter === old) categoryFilter = "";
+        save();
+        draw();
+        break;
+      }
     }
   });
   window.addEventListener("keydown", (e) => {
@@ -586,4 +687,17 @@
     });
   // FIRST PAINT: render the default screen using loaded data.
   draw();
+  cloud = WaypointCloud.create({
+    initial,
+    onData(data) {
+      db = data;
+      draw();
+    },
+    onSignedOut() {
+      close();
+      db = load();
+      view = "dashboard";
+      draw();
+    },
+  });
 })();
