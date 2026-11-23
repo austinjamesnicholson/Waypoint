@@ -17,7 +17,6 @@
   ];
   const priorities = ["High", "Normal", "Low"];
   const categories = [
-    "Hobbies",
     "Home",
     "Automotive",
     "Woodworking",
@@ -53,15 +52,11 @@
     categoryFilter = "",
     typeFilter = "",
     dialog = null;
-  let cloud = null;
   const save = () => {
     try {
-      if (cloud?.signedIn) cloud.change(db);
-      else localStorage.setItem(KEY, JSON.stringify(db));
+      localStorage.setItem(KEY, JSON.stringify(db));
     } catch (e) {
-      alert(
-        "Unable to save on this device. Please keep this page open and try again.",
-      );
+      alert("Unable to save locally. Try exporting a backup.");
     }
   };
   const esc = (s) =>
@@ -121,7 +116,7 @@
         "☷",
         "All tasks",
         count((t) => !["Completed", "Canceled"].includes(t.status)),
-      )}${navItem("inbox", "◫", "Inbox", count(inbox))}<div class="sidebar-foot">Sort: Next step date → Priority → Due date<br><br>Local storage with optional cloud sync.</div></aside><main class="main"><header class="top"><div class="top-heading"><div class="eyebrow">Waypoint / ${esc(view === "dashboard" ? "Overview" : view)}</div><h1 class="title">${esc(title)}</h1><p class="sub">${sub}</p></div><div class="top-actions"><button class="btn primary task-action" data-action="newTask">+ Task</button><button class="btn secondary-action" data-action="newProject">+ Project</button><button class="btn secondary-action" data-action="menu">⚙ Backup</button></div></header>${content}</main><nav class="mobile-nav">${[
+      )}${navItem("inbox", "◫", "Inbox", count(inbox))}<div class="sidebar-foot">Sort: Next step date → Priority → Due date<br><br>Saved locally in this browser.</div></aside><main class="main"><header class="top"><div class="top-heading"><div class="eyebrow">Waypoint / ${esc(view === "dashboard" ? "Overview" : view)}</div><h1 class="title">${esc(title)}</h1><p class="sub">${sub}</p></div><div class="top-actions"><button class="btn primary task-action" data-action="newTask">+ Task</button><button class="btn secondary-action" data-action="newProject">+ Project</button><button class="btn secondary-action" data-action="menu">⚙ Backup</button></div></header>${content}</main><nav class="mobile-nav">${[
         ["dashboard", "⌂", "Home"],
         ["projects", "▦", "Projects"],
         ["tasks", "☷", "Tasks"],
@@ -313,7 +308,7 @@
   }
   function showModal(title, form, id) {
     document.getElementById("modal-root").innerHTML =
-      `<div class="dialog-backdrop" id="backdrop"><section class="dialog" role="dialog" aria-modal="true" aria-labelledby="dialogtitle"><div class="top" style="margin-bottom:18px"><div><h2 id="dialogtitle">${esc(title)}</h2><p class="sub">Changes save on this device and sync when signed in.</p></div><button class="btn small" data-action="close">✕ Close</button></div>${form}<div class="dialog-actions"><div>${id ? `<button class="btn danger" data-action="delete">Delete</button>` : ""}</div><div><button class="btn ghost" data-action="close">Cancel</button><button class="btn primary" data-action="save">Save</button></div></div></section></div>`;
+      `<div class="dialog-backdrop" id="backdrop"><section class="dialog" role="dialog" aria-modal="true" aria-labelledby="dialogtitle"><div class="top" style="margin-bottom:18px"><div><h2 id="dialogtitle">${esc(title)}</h2><p class="sub">Changes save to this browser.</p></div><button class="btn small" data-action="close">✕ Close</button></div>${form}<div class="dialog-actions"><div>${id ? `<button class="btn danger" data-action="delete">Delete</button>` : ""}</div><div><button class="btn ghost" data-action="close">Cancel</button><button class="btn primary" data-action="save">Save</button></div></div></section></div>`;
     document
       .querySelector(
         '#item-form input[name="title"],#item-form input[name="name"]',
@@ -445,7 +440,7 @@
     let el = document.createElement("div");
     el.id = "backup-panel";
     el.className = "secondary-panel";
-    el.innerHTML = `<div class="section-head"><h2>Data & backup</h2></div><p class="hint">Sign in using the Cloud sync bar to sync between devices. Export downloads a copy. Import replaces this device?s data and syncs that replacement when signed in.</p><div class="actions"><button class="btn small" data-action="export">Export JSON backup</button><button class="btn small" data-action="import">Import JSON backup</button><button class="btn small danger" data-action="clear">Reset all data</button></div>`;
+    el.innerHTML = `<div class="section-head"><h2>Data & backup</h2></div><p class="hint">Data stays in this browser and does not automatically sync between devices. Export a backup regularly. Import replaces the current data.</p><div class="actions"><button class="btn small" data-action="export">Export JSON backup</button><button class="btn small" data-action="import">Import JSON backup</button><button class="btn small danger" data-action="clear">Reset all data</button></div>`;
     document.querySelector(".main")?.append(el);
   }
   // EVENTS: one listener handles interactions on dynamically rendered screens.
@@ -523,9 +518,7 @@
         break;
       case "clear":
         if (
-          confirm(
-            "Delete all tasks and projects? When signed in, this deletion syncs to your other devices.",
-          )
+          confirm("Permanently reset all locally saved tasks and projects?")
         ) {
           db = initial();
           save();
@@ -593,17 +586,4 @@
     });
   // FIRST PAINT: render the default screen using loaded data.
   draw();
-  cloud = WaypointCloud.create({
-    initial,
-    onData(data) {
-      db = data;
-      draw();
-    },
-    onSignedOut() {
-      close();
-      db = load();
-      view = "dashboard";
-      draw();
-    },
-  });
 })();

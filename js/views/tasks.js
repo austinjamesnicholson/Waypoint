@@ -55,7 +55,7 @@ WaypointViews.allTasks = function ({
         ["all", "All statuses"],
       ],
       statusFilter,
-    )}</select><select id="categoryFilter" aria-label="Filter category">${opts([["", "All categories"], ["Inbox", "Inbox"], ...db.categories.map((x) => [x, x])], categoryFilter)}</select><select id="typeFilter" aria-label="Filter need or want">${opts(
+    )}</select><select id="categoryFilter" aria-label="Filter category">${opts([["", "All categories"], ["Standalone", "Standalone"], ["Uncategorized", "Uncategorized"], ...db.categories.map((x) => [x, x])], categoryFilter)}</select><select id="typeFilter" aria-label="Filter need or want">${opts(
       [
         ["", "Need & Want"],
         ["Need", "Need"],

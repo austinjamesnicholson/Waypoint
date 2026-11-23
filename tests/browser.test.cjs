@@ -125,10 +125,51 @@ test(
       }
       const phone = await device(),
         pc = await device();
+      await expect(
+        phone.page.locator('.top [data-action="newProject"]'),
+      ).toHaveCount(0);
+      await expect(phone.page.locator('.top [data-action="menu"]')).toHaveCount(
+        0,
+      );
+      await phone.page.locator('.mobile-nav [data-view="settings"]').click();
+      await phone.page
+        .getByRole("textbox", { name: "New category" })
+        .fill("Garden");
+      await phone.page
+        .getByRole("button", { name: "Add category", exact: true })
+        .click();
+      await expect(phone.page.locator(".category-list")).toContainText(
+        "Garden",
+      );
+      phone.page.once("dialog", (dialog) => dialog.accept("Outdoors"));
+      await phone.page
+        .getByRole("button", { name: "Edit Garden", exact: true })
+        .click();
+      await expect(phone.page.locator(".category-list")).toContainText(
+        "Outdoors",
+      );
+      phone.page.once("dialog", (dialog) => dialog.accept());
+      await phone.page
+        .getByRole("button", { name: "Remove Outdoors", exact: true })
+        .click();
+      await expect(phone.page.locator(".category-list")).not.toContainText(
+        "Outdoors",
+      );
+      await phone.page.locator('.mobile-nav [data-view="dashboard"]').click();
       async function add(page, title) {
         await page.locator('[data-action="newTask"]').first().click();
         await page.locator("#f_title").fill(title);
-        await page.locator("#f_category").selectOption("Home");
+        const footer = page.locator(".dialog-actions");
+        const box = await footer.boundingBox();
+        assert.ok(
+          box.y >= 0 && box.y + box.height <= 844,
+          "Editor actions stay in the viewport",
+        );
+        await page.locator("#item-form").evaluate((form) => {
+          form.scrollTop = form.scrollHeight;
+        });
+        await expect(page.locator('[data-action="save"]')).toBeInViewport();
+        await expect(page.locator("#f_category")).toHaveCount(0);
         await page.locator('[data-action="save"]').click();
       }
       await add(phone.page, "From phone");
@@ -149,6 +190,14 @@ test(
       assert.equal(row.data.tasks.length, 2);
       await phone.page.reload();
       await expect(phone.page.locator("#app")).toContainText("Offline idea");
+      const completed = phone.page.locator("[data-complete]").first();
+      await completed.check();
+      await expect(phone.page.locator(".task-completing")).toHaveCount(1);
+      await expect(phone.page.locator(".task-completing")).toHaveCount(0);
+      await expect(phone.page.locator("#cloud-root")).toContainText(
+        "Saved to cloud",
+      );
+
       await phone.page.locator('[data-cloud-action="account"]').click();
       await phone.page.locator('[data-cloud-action="signout"]').click();
       await expect(phone.page.locator("#cloud-root")).toContainText(

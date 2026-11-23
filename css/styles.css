@@ -634,3 +634,66 @@ input[type="date"] {
 #cloud-panel a {
   color: var(--accent);
 }
+/* Editors keep their actions visible while only the form scrolls. */
+#modal-root .editor-dialog {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  max-height: calc(
+    100dvh - 40px - env(safe-area-inset-top) - env(safe-area-inset-bottom)
+  );
+}
+.editor-dialog > .top,
+.editor-dialog > .dialog-actions {
+  flex: 0 0 auto;
+}
+.editor-dialog > .form-grid {
+  overflow-y: auto;
+  min-height: 0;
+  padding-right: 6px;
+}
+.editor-dialog > .dialog-actions {
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
+  margin-top: 14px;
+  background: var(--panel);
+}
+.category-list {
+  margin-top: 18px;
+}
+.category-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+.category-row > span {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.category-row .actions {
+  flex-shrink: 0;
+}
+.task.task-completing {
+  animation: task-complete 550ms ease-out forwards;
+}
+@keyframes task-complete {
+  0% {
+    border-color: var(--line);
+    background: var(--panel);
+  }
+  35%,
+  100% {
+    border-color: #65cf8a;
+    background: #65cf8a20;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .task.task-completing {
+    animation: none;
+    border-color: #65cf8a;
+    background: #65cf8a20;
+  }
+}

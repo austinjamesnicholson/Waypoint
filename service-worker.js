@@ -1,4 +1,4 @@
-const CACHE = "waypoint-v4-cloud-connected-20261122";
+const CACHE = "waypoint-v5-settings-20261122";
 const ASSETS = [
   "./",
   "./index.html",
