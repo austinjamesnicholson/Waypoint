@@ -17,25 +17,7 @@ WaypointViews.dashboard = function ({
   base(
     "Dashboard",
     "",
-    `<div class="metrics">
-      <div class="metric">
-        <span>Ready to work on</span>
-        <strong>${ranked.length}</strong>
-      </div>
-      <div class="metric">
-        <span>Waiting</span>
-        <strong>${waiting.length}</strong>
-      </div>
-      <div class="metric">
-        <span>Unsorted inbox</span>
-        <strong>${count(inbox)}</strong>
-      </div>
-      <div class="metric">
-        <span>Active projects</span>
-        <strong>${db.projects.filter((p) => p.status === "Active").length}</strong>
-      </div>
-    </div>
-    <div class="section-head">
+    `<div class="section-head">
       <h2>Ranked work queue</h2>
       <small>Next step date → Priority → Due date</small>
     </div>

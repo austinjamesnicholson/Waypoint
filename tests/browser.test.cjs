@@ -125,6 +125,17 @@ test(
       }
       const phone = await device(),
         pc = await device();
+      await expect(phone.page.locator(".metrics")).toHaveCount(0);
+      const titleBox = await phone.page.locator(".title").boundingBox();
+      const buttonBox = await phone.page
+        .locator('.top [data-action="newTask"]')
+        .boundingBox();
+      assert.ok(
+        buttonBox.x > titleBox.x &&
+          buttonBox.y < titleBox.y + titleBox.height &&
+          buttonBox.y + buttonBox.height > titleBox.y,
+      );
+
       await expect(
         phone.page.locator('.top [data-action="newProject"]'),
       ).toHaveCount(0);
@@ -156,9 +167,40 @@ test(
         "Outdoors",
       );
       await phone.page.locator('.mobile-nav [data-view="dashboard"]').click();
+      async function checkEditorFits(page) {
+        for (const width of [320, 390, 1280]) {
+          await page.setViewportSize({ width, height: 844 });
+          const layout = await page
+            .locator(".editor-dialog")
+            .evaluate((dialog) => {
+              const form = dialog.querySelector(".form-grid");
+              const bounds = form.getBoundingClientRect();
+              return {
+                overflows: form.scrollWidth > form.clientWidth + 1,
+                fieldsFit: [
+                  ...form.querySelectorAll("input,select,textarea"),
+                ].every((field) => {
+                  const rect = field.getBoundingClientRect();
+                  return (
+                    rect.left >= bounds.left && rect.right <= bounds.right + 1
+                  );
+                }),
+                dialogFits: dialog.scrollWidth <= dialog.clientWidth + 1,
+              };
+            });
+          assert.deepEqual(layout, {
+            overflows: false,
+            fieldsFit: true,
+            dialogFits: true,
+          });
+          await expect(page.locator('[data-action="save"]')).toBeInViewport();
+        }
+        await page.setViewportSize({ width: 390, height: 844 });
+      }
       async function add(page, title) {
         await page.locator('[data-action="newTask"]').first().click();
         await page.locator("#f_title").fill(title);
+        await checkEditorFits(page);
         const footer = page.locator(".dialog-actions");
         const box = await footer.boundingBox();
         assert.ok(
@@ -201,9 +243,16 @@ test(
       await phone.page.locator('.mobile-nav [data-view="projects"]').click();
       await phone.page.locator('[data-action="newProject"]').click();
       await phone.page.locator("#f_name").fill("Garden");
+      await checkEditorFits(phone.page);
       await phone.page.locator("#f_shorthand").fill("GRDN");
       await phone.page.locator('[data-action="save"]').click();
       await phone.page.locator("[data-project]").click();
+      await expect(
+        phone.page.getByRole("button", {
+          name: "+ Task in project",
+          exact: true,
+        }),
+      ).toHaveCount(1);
       await phone.page.locator('.top [data-action="newTask"]').click();
       await expect(phone.page.locator("#f_projectId")).toHaveValue(
         await phone.page

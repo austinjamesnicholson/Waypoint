@@ -123,7 +123,7 @@
         "☷",
         "All tasks",
         count((t) => !["Completed", "Canceled"].includes(t.status)),
-      )}${navItem("inbox", "◫", "Inbox", count(inbox))}${navItem("settings", "&#9881;", "Settings")}<div class="sidebar-foot">Sort: Next step date → Priority → Due date<br><br>Local storage with optional cloud sync.</div></aside><main class="main"><header class="top"><div class="top-heading"><div class="eyebrow">Waypoint / ${esc(view === "dashboard" ? "Overview" : view)}</div><h1 class="title">${esc(title)}</h1><p class="sub">${sub}</p></div><div class="top-actions"><button class="btn primary task-action" data-action="newTask">+ Task</button></div></header>${content}</main><nav class="mobile-nav">${[
+      )}${navItem("inbox", "◫", "Inbox", count(inbox))}${navItem("settings", "&#9881;", "Settings")}<div class="sidebar-foot">Sort: Next step date → Priority → Due date<br><br>Local storage with optional cloud sync.</div></aside><main class="main"><header class="top"><div class="top-heading"><div class="eyebrow">Waypoint / ${esc(view === "dashboard" ? "Overview" : view)}</div><div class="title-row"><h1 class="title">${esc(title)}</h1><div class="top-actions"><button class="btn primary task-action" data-action="newTask">${view === "project" ? "+ Task in project" : "+ Task"}</button></div></div>${sub ? `<p class="sub">${sub}</p>` : ""}</div></header>${content}</main><nav class="mobile-nav">${[
         ["dashboard", "⌂", "Home"],
         ["projects", "▦", "Projects"],
         ["tasks", "☷", "Tasks"],

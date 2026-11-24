@@ -17,6 +17,6 @@ WaypointViews.projectDetail = function ({
   base(
     p.name,
     `${esc(p.shorthand)} · ${esc(p.category || "Uncategorized")} · ${esc(p.status)} · ${ts.length} tasks`,
-    `<div class="actions"><button class="btn ghost" data-view="projects">← All projects</button><button class="btn" data-edit-project="${esc(p.id)}">Edit project</button><button class="btn primary" data-add-to-project="${esc(p.id)}">+ Task in project</button></div>${p.description ? `<p class="sub" style="margin-top:15px">${esc(p.description)}</p>` : ""}<div class="section-head"><h2>Project tasks</h2><small>Same ranking rules</small></div>${taskList(ts, "Add your first task to this project.")}`,
+    `<div class="actions"><button class="btn ghost" data-view="projects">← All projects</button><button class="btn" data-edit-project="${esc(p.id)}">Edit project</button></div>${p.description ? `<p class="sub" style="margin-top:15px">${esc(p.description)}</p>` : ""}<div class="section-head"><h2>Project tasks</h2><small>Same ranking rules</small></div>${taskList(ts, "Add your first task to this project.")}`,
   );
 };

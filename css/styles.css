@@ -697,3 +697,59 @@ input[type="date"] {
     background: #65cf8a20;
   }
 }
+
+/* Keep the primary action beside the title at every screen size. */
+.main > .top > .top-heading {
+  width: 100%;
+  min-width: 0;
+}
+.title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.title-row .title {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.title-row .top-actions {
+  display: flex;
+  width: auto;
+  flex: 0 0 auto;
+}
+.title-row .task-action {
+  width: auto;
+}
+/* Form controls must shrink to their grid cell, including native date inputs. */
+.dialog {
+  min-width: 0;
+  overflow-x: hidden;
+}
+.dialog .top > div {
+  min-width: 0;
+}
+.dialog h2 {
+  overflow-wrap: anywhere;
+}
+.dialog .form-grid,
+.dialog .group {
+  min-width: 0;
+  max-width: 100%;
+}
+.dialog input,
+.dialog select,
+.dialog textarea {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+.dialog textarea {
+  resize: vertical;
+}
+.editor-dialog > .form-grid {
+  overflow-x: hidden;
+  padding: 2px 6px 2px 2px;
+}
