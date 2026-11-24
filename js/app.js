@@ -44,7 +44,7 @@
     } catch (e) {}
     return initial();
   }
-  let db = load(),
+  let db = WaypointSync.identify(load()),
     view = "dashboard",
     search = "",
     statusFilter = "open",
@@ -54,6 +54,7 @@
     dialog = null;
   let cloud = null;
   const save = () => {
+    WaypointSync.identify(db);
     try {
       if (cloud?.signedIn) cloud.change(db);
       else localStorage.setItem(KEY, JSON.stringify(db));
@@ -135,10 +136,12 @@
         )
         .join("")}</nav>`;
   }
+  const taskLabel = (t) =>
+    `${project(t.projectId)?.shorthand || "TASK"}-${String(t.taskNumber).padStart(3, "0")}`;
   function taskCard(t, i) {
     const p = project(t.projectId);
     const done = t.status === "Completed";
-    return `<article class="task"><input type="checkbox" class="checkbox" ${done ? "checked" : ""} data-complete="${esc(t.id)}" aria-label="Complete ${esc(t.title)}"><div class="task-main" data-edit-task="${esc(t.id)}" role="button" tabindex="0"><div class="task-title" style="${done ? "text-decoration:line-through;opacity:.6" : ""}">${esc(t.title)}</div><div class="meta"><span>${esc(p?.name || category(t))}</span><span>·</span><span class="pill ${t.priority.toLowerCase()}">${esc(t.priority)}</span><span class="pill">${esc(type(t))}</span>${t.status === "Waiting" ? '<span class="pill waiting">Waiting</span>' : ""}${done ? '<span class="pill done">Completed</span>' : ""}</div>${t.nextStep ? `<p class="next">↳ ${esc(t.nextStep)}</p>` : ""}<div class="details-inline"><span class="pill">Next: ${esc(relative(t.nextDate))}</span><span class="pill">Due: ${esc(relative(t.dueDate))}</span>${t.blocker ? '<span class="pill waiting">⚠ Blocker</span>' : ""}</div></div>${i !== undefined ? `<div class="rank">${i + 1}</div>` : ""}</article>`;
+    return `<article class="task"><input type="checkbox" class="checkbox" ${done ? "checked" : ""} data-complete="${esc(t.id)}" aria-label="Complete ${esc(t.title)}"><div class="task-main" data-edit-task="${esc(t.id)}" role="button" tabindex="0"><div class="task-title" style="${done ? "text-decoration:line-through;opacity:.6" : ""}">${esc(t.title)}</div><div class="meta"><span class="pill">${esc(taskLabel(t))}</span><span>${esc(p?.name || category(t))}</span><span>·</span><span class="pill ${t.priority.toLowerCase()}">${esc(t.priority)}</span><span class="pill">${esc(type(t))}</span>${t.status === "Waiting" ? '<span class="pill waiting">Waiting</span>' : ""}${done ? '<span class="pill done">Completed</span>' : ""}</div>${t.nextStep ? `<p class="next">↳ ${esc(t.nextStep)}</p>` : ""}<div class="details-inline"><span class="pill">Next: ${esc(relative(t.nextDate))}</span><span class="pill">Due: ${esc(relative(t.dueDate))}</span>${t.blocker ? '<span class="pill waiting">⚠ Blocker</span>' : ""}</div></div>${i !== undefined ? `<div class="rank">${i + 1}</div>` : ""}</article>`;
   }
   function taskList(ts, empty = "Nothing here yet.") {
     return ts.length
@@ -236,7 +239,7 @@
     dialog = { type: "task", id };
     const ps = [["", "Standalone"], ...db.projects.map((p) => [p.id, p.name])];
     showModal(
-      `${id ? "Edit task" : "New task"}`,
+      `${id ? "Edit task " + taskLabel(t) : "New task"}`,
       `<form id="item-form" class="form-grid">${field("title", "Task title", t.title, "text", "full")}${selectField("projectId", "Project", ps, t.projectId)}${selectField(
         "type",
         "Need / Want",
@@ -285,7 +288,7 @@
     dialog = { type: "project", id };
     showModal(
       `${id ? "Edit project" : "New project"}`,
-      `<form id="item-form" class="form-grid">${field("name", "Project name", p.name, "text", "full")}${selectField(
+      `<form id="item-form" class="form-grid">${field("name", "Project name", p.name, "text", "full")}${field("shorthand", "Project shorthand (letters and numbers)", p.shorthand || "", "text", "full")}${selectField(
         "category",
         "Category",
         [["", "Uncategorized"], ...db.categories.map((x) => [x, x])],
@@ -383,6 +386,19 @@
         item.completedAt = now;
       else if (item.status !== "Completed") item.completedAt = null;
     } else {
+      values.shorthand = values.shorthand.trim().toUpperCase();
+      if (
+        !/^[A-Z0-9]{1,12}$/.test(values.shorthand) ||
+        values.shorthand === "TASK" ||
+        db.projects.some(
+          (p) => p.id !== dialog.id && p.shorthand === values.shorthand,
+        )
+      ) {
+        alert(
+          "Enter a unique shorthand of 1–12 letters or numbers. TASK is reserved for standalone tasks.",
+        );
+        return;
+      }
       let existing = db.projects.find((p) => p.id === dialog.id);
       let item = {
         ...existing,
@@ -554,7 +570,7 @@
     }
     switch (b.dataset.action) {
       case "newTask":
-        openTask();
+        openTask(null, view === "project" ? projectFilter : null);
         break;
       case "quickCapture":
         openQuickCapture();
@@ -676,7 +692,7 @@
           !confirm("Import this backup and replace all currently saved data?")
         )
           return;
-        db = { ...initial(), ...data };
+        db = WaypointSync.identify({ ...initial(), ...data });
         save();
         view = "dashboard";
         draw();
@@ -690,12 +706,12 @@
   cloud = WaypointCloud.create({
     initial,
     onData(data) {
-      db = data;
+      db = WaypointSync.identify(data);
       draw();
     },
     onSignedOut() {
       close();
-      db = load();
+      db = WaypointSync.identify(load());
       view = "dashboard";
       draw();
     },

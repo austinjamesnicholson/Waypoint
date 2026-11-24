@@ -26,6 +26,7 @@ WaypointViews.allTasks = function ({
       !search ||
       [
         t.title,
+        `${project(t.projectId)?.shorthand || "TASK"}-${String(t.taskNumber).padStart(3, "0")}`,
         t.description,
         t.nextStep,
         t.blocker,

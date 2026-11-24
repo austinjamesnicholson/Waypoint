@@ -198,6 +198,24 @@ test(
         "Saved to cloud",
       );
 
+      await phone.page.locator('.mobile-nav [data-view="projects"]').click();
+      await phone.page.locator('[data-action="newProject"]').click();
+      await phone.page.locator("#f_name").fill("Garden");
+      await phone.page.locator("#f_shorthand").fill("GRDN");
+      await phone.page.locator('[data-action="save"]').click();
+      await phone.page.locator("[data-project]").click();
+      await phone.page.locator('.top [data-action="newTask"]').click();
+      await expect(phone.page.locator("#f_projectId")).toHaveValue(
+        await phone.page
+          .locator("#f_projectId option", { hasText: "Garden" })
+          .getAttribute("value"),
+      );
+      await phone.page.locator("#f_title").fill("Plant seeds");
+      await phone.page.locator('[data-action="save"]').click();
+      await expect(phone.page.locator(".task")).toContainText("GRDN-001");
+      await expect(phone.page.locator("#cloud-root")).toContainText(
+        "Saved to cloud",
+      );
       await phone.page.locator('[data-cloud-action="account"]').click();
       await phone.page.locator('[data-cloud-action="signout"]').click();
       await expect(phone.page.locator("#cloud-root")).toContainText(

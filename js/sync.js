@@ -14,6 +14,59 @@ const WaypointSync = (() => {
           : v;
     return JSON.stringify(normalize(a)) === JSON.stringify(normalize(b));
   };
+  // Keep human-readable identifiers separate from permanent internal UUIDs.
+  function identify(data) {
+    const usedPrefixes = new Set(["TASK"]);
+    for (const p of [...data.projects].sort((a, b) =>
+      a.id.localeCompare(b.id),
+    )) {
+      let prefix =
+        String(p.shorthand || p.name || "PRJ")
+          .toUpperCase()
+          .replace(/[^A-Z0-9]/g, "")
+          .slice(0, 12) || "PRJ";
+      const stem = prefix;
+      for (let n = 2; usedPrefixes.has(prefix); n++) prefix = stem + n;
+      usedPrefixes.add(prefix);
+      p.shorthand = prefix;
+    }
+    const groups = new Map();
+    for (const t of data.tasks) {
+      const key = data.projects.some((p) => p.id === t.projectId)
+        ? t.projectId
+        : "";
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(t);
+    }
+    for (const [key, tasks] of groups) {
+      const p = data.projects.find((p) => p.id === key);
+      let high = Math.max(
+        p?.taskSequence || 0,
+        data.taskSequence?.[key] || 0,
+        ...tasks.map((t) =>
+          t.numberProject === key && Number.isSafeInteger(t.taskNumber)
+            ? t.taskNumber
+            : 0,
+        ),
+      );
+      const used = new Set();
+      for (const t of tasks.sort((a, b) => a.id.localeCompare(b.id))) {
+        if (
+          t.numberProject !== key ||
+          !Number.isSafeInteger(t.taskNumber) ||
+          t.taskNumber < 1 ||
+          used.has(t.taskNumber)
+        ) {
+          t.taskNumber = ++high;
+          t.numberProject = key;
+        }
+        used.add(t.taskNumber);
+      }
+      data.taskSequence ||= {};
+      data.taskSequence[key] = high;
+    }
+    return data;
+  }
   function merge(base, local, remote, prefer = "local") {
     const conflicts = [];
     const choose = (old, ours, theirs, path) => {
@@ -40,6 +93,25 @@ const WaypointSync = (() => {
       "categories",
     );
     result.version = 1;
+    if (local.taskSequence || remote.taskSequence) {
+      result.taskSequence = {};
+      for (const key of new Set([
+        ...Object.keys(local.taskSequence || {}),
+        ...Object.keys(remote.taskSequence || {}),
+      ])) {
+        result.taskSequence[key] = Math.max(
+          local.taskSequence?.[key] || 0,
+          remote.taskSequence?.[key] || 0,
+        );
+      }
+    }
+    // Offline additions may both have chosen the next number. Reconcile in UUID
+    // order so every device reaches the same unique numbers after merging.
+    if (
+      result.projects.some((p) => p.shorthand) ||
+      result.tasks.some((t) => t.taskNumber)
+    )
+      identify(result);
     return { data: copy(result), conflicts };
   }
   function valid(data) {
@@ -221,6 +293,6 @@ const WaypointSync = (() => {
       },
     };
   }
-  return { create, merge, equal, valid };
+  return { create, merge, equal, valid, identify };
 })();
 if (typeof module !== "undefined") module.exports = WaypointSync;
