@@ -192,7 +192,7 @@ select:focus-visible {
   align-self: center;
 }
 .metrics {
-  display: inline;
+  display: inline-block;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
   margin-bottom: 25px;
