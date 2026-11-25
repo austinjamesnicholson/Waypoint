@@ -594,10 +594,18 @@
   // EVENTS: one listener handles interactions on dynamically rendered screens.
   window.addEventListener("click", (e) => {
     let b = e.target.closest(
-      "[data-view],[data-action],[data-project-flow],[data-project],[data-edit-task],[data-edit-project],[data-add-to-project],[data-complete]",
+      "[data-view],[data-action],[data-flow-jump],[data-project-flow],[data-project],[data-edit-task],[data-edit-project],[data-add-to-project],[data-complete]",
     );
     if (!b) {
       if (e.target.id === "backdrop") close();
+      return;
+    }
+    if (b.dataset.flowJump) {
+      const card = document.getElementById("flow-task-" + b.dataset.flowJump);
+      if (card) {
+        card.scrollIntoView({ block: "center", behavior: "auto" });
+        card.querySelector(".flow-mobile-node")?.focus({ preventScroll: true });
+      }
       return;
     }
     if (b.dataset.view) {

@@ -325,14 +325,14 @@ test(
       await phone.page
         .getByRole("button", { name: "Task flowchart", exact: true })
         .click();
-      await expect(phone.page.locator(".flow-node")).toHaveCount(2);
+      await expect(phone.page.locator(".flow-mobile-node")).toHaveCount(2);
       await expect(phone.page.locator(".flow-edges path")).toHaveCount(1);
       await phone.page.screenshot({
         path: ".build-tools/task-flow-mobile.png",
         fullPage: true,
       });
       await phone.page
-        .locator(`.flow-node[data-edit-task="${parentId}"]`)
+        .locator(`.flow-mobile-node[data-edit-task="${parentId}"]`)
         .click();
       await phone.page.getByText("Dependent tasks", { exact: true }).click();
       await expect(
@@ -405,6 +405,93 @@ test(
         "Local only",
       );
       await expect(phone.page.locator("#app")).not.toContainText("From phone");
+      // Wide branches must reflow vertically rather than widening the phone page.
+      await phone.page.evaluate(() => {
+        const seed = (id, number, dependsOn = []) => ({
+          id,
+          taskNumber: number,
+          numberProject: "mobile-project",
+          projectId: "mobile-project",
+          title:
+            "Task " +
+            number +
+            " with a longer description that should remain fully readable on a small phone",
+          dependsOn,
+          priority: "Normal",
+          status: "Not Started",
+          createdAt: "2026-11-24T00:00:00Z",
+        });
+        const tasks = [
+          seed("root", 1),
+          ...Array.from({ length: 8 }, (_, i) =>
+            seed("branch" + i, i + 2, ["root"]),
+          ),
+          seed(
+            "join",
+            10,
+            Array.from({ length: 8 }, (_, i) => "branch" + i),
+          ),
+        ];
+        localStorage.setItem(
+          "waypoint.tasks.v1",
+          JSON.stringify({
+            version: 1,
+            categories: [],
+            projects: [
+              {
+                id: "mobile-project",
+                name: "Mobile branching",
+                shorthand: "MOB",
+                status: "Active",
+              },
+            ],
+            tasks,
+          }),
+        );
+      });
+      await phone.page.reload();
+      await phone.page.locator('.mobile-nav [data-view="projects"]').click();
+      await phone.page
+        .getByRole("button", { name: "View task flowchart", exact: true })
+        .click();
+      for (const width of [320, 390, 768]) {
+        await phone.page.setViewportSize({ width, height: 844 });
+        await expect(phone.page.locator(".flow-mobile-node")).toHaveCount(10);
+        await expect(phone.page.locator(".flow-stage")).toHaveCount(3);
+        const fits = await phone.page.locator(".flow-mobile").evaluate((el) => {
+          const width = document.documentElement.clientWidth;
+          return (
+            document.documentElement.scrollWidth <= width + 1 &&
+            [
+              ...el.querySelectorAll(".flow-mobile-node,.flow-parent-link"),
+            ].every((n) => {
+              const r = n.getBoundingClientRect();
+              return (
+                r.left >= 0 &&
+                r.right <= width &&
+                n.scrollWidth <= n.clientWidth + 1
+              );
+            })
+          );
+        });
+        assert.ok(fits, "Branching flow fits viewport at " + width);
+      }
+      await phone.page.setViewportSize({ width: 390, height: 844 });
+      await phone.page.screenshot({
+        path: ".build-tools/task-flow-mobile-branching.png",
+        fullPage: true,
+      });
+      await phone.page
+        .locator(".flow-stage")
+        .last()
+        .getByRole("button", { name: "Go to parent MOB-002", exact: true })
+        .click();
+      await expect(
+        phone.page.locator('.flow-mobile-node[data-edit-task="branch0"]'),
+      ).toBeFocused();
+      await phone.page.setViewportSize({ width: 1280, height: 900 });
+      await expect(phone.page.locator(".flow-desktop")).toBeVisible();
+      await expect(phone.page.locator(".flow-mobile")).toBeHidden();
       assert.deepEqual(phone.errors, []);
       assert.deepEqual(pc.errors, []);
     } finally {

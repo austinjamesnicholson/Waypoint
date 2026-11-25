@@ -906,3 +906,111 @@ input[type="date"] {
 .project-flow-link {
   align-self: flex-start;
 }
+/* Full-width mobile stages retain readable text without a zoomed-out canvas. */
+.flow-mobile {
+  display: none;
+}
+@media (max-width: 820px) {
+  .flow-desktop {
+    display: none;
+  }
+  .flow-mobile {
+    display: block;
+    width: 100%;
+    min-width: 0;
+  }
+  .flow-stage {
+    position: relative;
+    padding: 0 0 30px 16px;
+    border-left: 2px solid var(--line);
+    margin-left: 5px;
+  }
+  .flow-stage:last-child {
+    padding-bottom: 0;
+  }
+  .flow-stage > h2 {
+    font-size: 16px;
+    margin: 0 0 10px;
+  }
+  .flow-stage > h2::before {
+    content: "";
+    position: absolute;
+    left: -6px;
+    top: 5px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+  .flow-stage-tasks {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+  .flow-mobile-card {
+    min-width: 0;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--panel);
+    overflow: hidden;
+    scroll-margin-block: 20px;
+  }
+  .flow-mobile-node {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    width: 100%;
+    min-width: 0;
+    padding: 14px;
+    border: 0;
+    border-left: 3px solid var(--blue);
+    background: transparent;
+    color: var(--text);
+    text-align: left;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .flow-mobile-node strong {
+    font-size: 16px;
+    line-height: 1.5;
+  }
+  .flow-mobile-node > span {
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  .flow-mobile-node.is-done {
+    border-left-color: var(--accent);
+    background: var(--accent2);
+  }
+  .flow-mobile-node.is-blocked {
+    border-left-color: var(--warn);
+  }
+  .flow-mobile-node:focus-visible {
+    outline-offset: -3px;
+  }
+  .flow-parent-links {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    padding: 10px 14px;
+    border-top: 1px solid var(--line);
+    color: var(--muted);
+    font-size: 12px;
+    overflow-wrap: anywhere;
+  }
+  .flow-parent-link {
+    color: var(--accent);
+    background: var(--panel2);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 9px;
+    text-align: left;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    min-width: 0;
+    width: 100%;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+}
