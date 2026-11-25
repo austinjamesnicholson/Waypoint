@@ -100,7 +100,8 @@
       project(t.projectId)?.status,
     );
   const inbox = (t) => !project(t.projectId);
-  const ready = (t) => !inactive(t);
+  const ready = (t) =>
+    !inactive(t) && !WaypointDependencies.blockers(t, db.tasks).length;
   const fmtDate = (s) =>
     s
       ? new Date(s + "T12:00:00").toLocaleDateString(undefined, {
@@ -123,7 +124,7 @@
         "☷",
         "All tasks",
         count((t) => !["Completed", "Canceled"].includes(t.status)),
-      )}${navItem("inbox", "◫", "Inbox", count(inbox))}${navItem("settings", "&#9881;", "Settings")}<div class="sidebar-foot">Sort: Next step date → Priority → Due date<br><br>Local storage with optional cloud sync.</div></aside><main class="main"><header class="top"><div class="top-heading"><div class="eyebrow">Waypoint / ${esc(view === "dashboard" ? "Overview" : view)}</div><div class="title-row"><h1 class="title">${esc(title)}</h1><div class="top-actions"><button class="btn primary task-action" data-action="newTask">${view === "project" ? "+ Task in project" : "+ Task"}</button></div></div>${sub ? `<p class="sub">${sub}</p>` : ""}</div></header>${content}</main><nav class="mobile-nav">${[
+      )}${navItem("inbox", "◫", "Inbox", count(inbox))}${navItem("settings", "&#9881;", "Settings")}<div class="sidebar-foot">Sort: Next step date → Priority → Due date<br><br>Local storage with optional cloud sync.</div></aside><main class="main"><header class="top"><div class="top-heading"><div class="eyebrow">Waypoint / ${esc(view === "dashboard" ? "Overview" : view)}</div><div class="title-row"><h1 class="title">${esc(title)}</h1><div class="top-actions"><button class="btn primary task-action" data-action="newTask">${["project", "flow"].includes(view) ? "+ Task in project" : "+ Task"}</button></div></div>${sub ? `<p class="sub">${sub}</p>` : ""}</div></header>${content}</main><nav class="mobile-nav">${[
         ["dashboard", "⌂", "Home"],
         ["projects", "▦", "Projects"],
         ["tasks", "☷", "Tasks"],
@@ -141,7 +142,8 @@
   function taskCard(t, i) {
     const p = project(t.projectId);
     const done = t.status === "Completed";
-    return `<article class="task"><input type="checkbox" class="checkbox" ${done ? "checked" : ""} data-complete="${esc(t.id)}" aria-label="Complete ${esc(t.title)}"><div class="task-main" data-edit-task="${esc(t.id)}" role="button" tabindex="0"><div class="task-title" style="${done ? "text-decoration:line-through;opacity:.6" : ""}">${esc(t.title)}</div><div class="meta"><span class="pill">${esc(taskLabel(t))}</span><span>${esc(p?.name || category(t))}</span><span>·</span><span class="pill ${t.priority.toLowerCase()}">${esc(t.priority)}</span><span class="pill">${esc(type(t))}</span>${t.status === "Waiting" ? '<span class="pill waiting">Waiting</span>' : ""}${done ? '<span class="pill done">Completed</span>' : ""}</div>${t.nextStep ? `<p class="next">↳ ${esc(t.nextStep)}</p>` : ""}<div class="details-inline"><span class="pill">Next: ${esc(relative(t.nextDate))}</span><span class="pill">Due: ${esc(relative(t.dueDate))}</span>${t.blocker ? '<span class="pill waiting">⚠ Blocker</span>' : ""}</div></div>${i !== undefined ? `<div class="rank">${i + 1}</div>` : ""}</article>`;
+    const blocked = WaypointDependencies.blockers(t, db.tasks).length;
+    return `<article class="task"><input type="checkbox" class="checkbox" ${done ? "checked" : ""} data-complete="${esc(t.id)}" aria-label="Complete ${esc(t.title)}"><div class="task-main" data-edit-task="${esc(t.id)}" role="button" tabindex="0"><div class="task-title" style="${done ? "text-decoration:line-through;opacity:.6" : ""}">${esc(t.title)}</div><div class="meta"><span class="pill">${esc(taskLabel(t))}</span><span>${esc(p?.name || category(t))}</span><span>·</span><span class="pill ${t.priority.toLowerCase()}">${esc(t.priority)}</span><span class="pill">${esc(type(t))}</span>${t.status === "Waiting" ? '<span class="pill waiting">Waiting</span>' : ""}${done ? '<span class="pill done">Completed</span>' : blocked ? `<span class="pill waiting">Waiting on ${blocked} parent${blocked === 1 ? "" : "s"}</span>` : ""}</div>${t.nextStep ? `<p class="next">↳ ${esc(t.nextStep)}</p>` : ""}<div class="details-inline"><span class="pill">Next: ${esc(relative(t.nextDate))}</span><span class="pill">Due: ${esc(relative(t.dueDate))}</span>${t.blocker ? '<span class="pill waiting">⚠ Blocker</span>' : ""}</div></div>${i !== undefined ? `<div class="rank">${i + 1}</div>` : ""}</article>`;
   }
   function taskList(ts, empty = "Nothing here yet.") {
     return ts.length
@@ -207,6 +209,16 @@
     if (view === "dashboard") dashboard();
     else if (view === "projects") projectsView();
     else if (view === "project") projectDetail();
+    else if (view === "flow")
+      WaypointViews.projectFlow({
+        db,
+        project,
+        projectFilter,
+        base,
+        esc,
+        taskLabel,
+        showProjects,
+      });
     else if (view === "tasks") allTasks();
     else if (view === "settings") settingsView();
     else inboxView();
@@ -217,6 +229,29 @@
     `<div class="group ${extra}"><label for="f_${name}">${label}</label><select name="${name}" id="f_${name}">${options.map(([v, l]) => `<option value="${esc(v)}" ${v === value ? "selected" : ""}>${esc(l)}</option>`).join("")}</select></div>`;
   const textArea = (name, label, value = "", extra = "") =>
     `<div class="group ${extra}"><label for="f_${name}">${label}</label><textarea name="${name}" id="f_${name}">${esc(value)}</textarea></div>`;
+  function dependencyFields(t) {
+    const others = db.tasks
+      .filter((x) => x.id !== t.id)
+      .sort((a, b) => taskLabel(a).localeCompare(taskLabel(b)));
+    const choices = (name, selected) =>
+      others
+        .map(
+          (x) =>
+            `<label class="dependency-choice"><input type="checkbox" name="${name}" value="${esc(x.id)}" ${selected.includes(x.id) ? "checked" : ""}><span><strong>${esc(taskLabel(x))}</strong> ${esc(x.title)}</span></label>`,
+        )
+        .join("");
+    const missing = WaypointDependencies.parents(t).filter(
+      (id) => !db.tasks.some((x) => x.id === id),
+    );
+    return `<fieldset class="group full dependency-fields"><legend>Task dependencies</legend><p class="hint">Parents must finish before this task. Dependents wait for this task. Links may span projects.</p>${missing.length ? '<p class="notice">A linked task has been deleted. Saving removes its missing link.</p>' : ""}<details><summary>Parents / prerequisites</summary><div class="dependency-options">${choices("parents", WaypointDependencies.parents(t)) || '<p class="hint">Create another task first, then link it here.</p>'}</div></details><details><summary>Dependent tasks</summary><div class="dependency-options">${
+      choices(
+        "dependents",
+        db.tasks
+          .filter((x) => WaypointDependencies.parents(x).includes(t.id))
+          .map((x) => x.id),
+      ) || '<p class="hint">No other tasks yet.</p>'
+    }</div></details></fieldset>`;
+  }
   // FULL TASK EDITOR: use this for task details, planning, and updates.
   function openTask(id = null, pid = null) {
     let t = db.tasks.find((x) => x.id === id) || {
@@ -259,7 +294,7 @@
         "Status",
         statuses.map((x) => [x, x]),
         t.status,
-      )}${field("nextDate", "Next step target date", t.nextDate, "date")}${field("dueDate", "Task target finish date", t.dueDate, "date")}${field("deadline", "Hard deadline (optional)", t.deadline, "date")}${field("effort", "Estimated effort (minutes)", t.effort, "number")}${textArea("nextStep", "Next step", t.nextStep, "full")}${textArea("description", "Description / notes", t.description, "full")}${textArea("blocker", "Blocker (if any)", t.blocker, "full")}${field("waitingFor", "Waiting for", t.waitingFor)}${field("followUpDate", "Follow-up date", t.followUpDate, "date")}<div class="group full"><p class="hint">Ranking is automatic: earliest next step target date, then High → Normal → Low priority, then earliest task due date. Undated tasks come last.</p></div></form>`,
+      )}${field("nextDate", "Next step target date", t.nextDate, "date")}${field("dueDate", "Task target finish date", t.dueDate, "date")}${field("deadline", "Hard deadline (optional)", t.deadline, "date")}${field("effort", "Estimated effort (minutes)", t.effort, "number")}${textArea("nextStep", "Next step", t.nextStep, "full")}${textArea("description", "Description / notes", t.description, "full")}${textArea("blocker", "Blocker (if any)", t.blocker, "full")}${field("waitingFor", "Waiting for", t.waitingFor)}${field("followUpDate", "Follow-up date", t.followUpDate, "date")}${dependencyFields(t)}<div class="group full"><p class="hint">Ranking is automatic: earliest next step target date, then High → Normal → Low priority, then earliest task due date. Undated tasks come last.</p></div></form>`,
       id,
     );
   }
@@ -315,7 +350,7 @@
   }
   function showModal(title, form, id) {
     document.getElementById("modal-root").innerHTML =
-      `<div class="dialog-backdrop" id="backdrop"><section class="dialog editor-dialog" role="dialog" aria-modal="true" aria-labelledby="dialogtitle"><div class="top" style="margin-bottom:18px"><div><h2 id="dialogtitle">${esc(title)}</h2><p class="sub">Changes save on this device and sync when signed in.</p></div><button class="btn small" data-action="close">✕ Close</button></div>${form}<div class="dialog-actions"><div>${id ? `<button class="btn danger" data-action="delete">Delete</button>` : ""}</div><div><button class="btn ghost" data-action="close">Cancel</button><button class="btn primary" data-action="save">Save</button></div></div></section></div>`;
+      `<div class="dialog-backdrop" id="backdrop"><section class="dialog editor-dialog" role="dialog" aria-modal="true" aria-labelledby="dialogtitle"><div class="top" style="margin-bottom:18px"><div><h2 id="dialogtitle">${esc(title)}</h2><p class="sub">Changes save on this device and sync when signed in.</p></div><button class="editor-close" data-action="close" aria-label="Cancel editing" title="Cancel editing">&times;</button></div>${form}<div class="dialog-actions"><div>${id ? `<button class="btn danger" data-action="delete">Delete</button>` : ""}</div><div><button class="btn primary" data-action="save">Save</button></div></div></section></div>`;
     document
       .querySelector(
         '#item-form input[name="title"],#item-form input[name="name"]',
@@ -329,7 +364,10 @@
   function saveDialog() {
     if (!dialog) return;
     const form = document.getElementById("item-form");
-    const values = Object.fromEntries(new FormData(form).entries());
+    const formData = new FormData(form);
+    const values = Object.fromEntries(formData.entries());
+    delete values.parents;
+    delete values.dependents;
     const now = new Date().toISOString();
     const name = (
       dialog.type === "task" || dialog.type === "quick"
@@ -375,13 +413,34 @@
         updatedAt: now,
       };
       delete item.category;
+      try {
+        const linked = WaypointDependencies.link(
+          db.tasks,
+          item,
+          formData.getAll("parents"),
+          formData.getAll("dependents"),
+          now,
+        );
+        if (
+          item.status === "Completed" &&
+          existing?.status !== "Completed" &&
+          WaypointDependencies.blockers(
+            linked.find((x) => x.id === item.id),
+            linked,
+          ).length
+        ) {
+          throw Error(
+            "Complete this task's parents first, or remove its prerequisite links.",
+          );
+        }
+        db.tasks = linked;
+      } catch (error) {
+        alert(error.message);
+        return;
+      }
+      item = db.tasks.find((x) => x.id === item.id);
       if (item.status === "Completed" && existing?.status !== "Completed")
         completionSound();
-      if (!existing) {
-        db.tasks.push(item);
-      } else {
-        db.tasks = db.tasks.map((t) => (t.id === dialog.id ? item : t));
-      }
       if (item.status === "Completed" && !item.completedAt)
         item.completedAt = now;
       else if (item.status !== "Completed") item.completedAt = null;
@@ -423,7 +482,19 @@
     )
       return;
     if (dialog.type === "task") {
-      db.tasks = db.tasks.filter((t) => t.id !== dialog.id);
+      db.tasks = db.tasks
+        .filter((t) => t.id !== dialog.id)
+        .map((t) =>
+          WaypointDependencies.parents(t).includes(dialog.id)
+            ? {
+                ...t,
+                dependsOn: WaypointDependencies.parents(t).filter(
+                  (id) => id !== dialog.id,
+                ),
+                updatedAt: new Date().toISOString(),
+              }
+            : t,
+        );
     } else {
       if (
         db.tasks.some((t) => t.projectId === dialog.id) &&
@@ -555,6 +626,16 @@
     if (b.dataset.complete) {
       let t = db.tasks.find((t) => t.id === b.dataset.complete);
       if (t) {
+        if (
+          e.target.checked &&
+          WaypointDependencies.blockers(t, db.tasks).length
+        ) {
+          e.target.checked = false;
+          alert(
+            "Complete this task's parents first, or edit its prerequisite links.",
+          );
+          return;
+        }
         t.status = e.target.checked ? "Completed" : "Not Started";
         t.completedAt = e.target.checked ? new Date().toISOString() : null;
         t.updatedAt = new Date().toISOString();
@@ -569,8 +650,19 @@
       return;
     }
     switch (b.dataset.action) {
+      case "projectFlow":
+        view = "flow";
+        draw();
+        break;
+      case "projectTasks":
+        view = "project";
+        draw();
+        break;
       case "newTask":
-        openTask(null, view === "project" ? projectFilter : null);
+        openTask(
+          null,
+          ["project", "flow"].includes(view) ? projectFilter : null,
+        );
         break;
       case "quickCapture":
         openQuickCapture();

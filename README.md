@@ -49,3 +49,9 @@ You can open `index.html` directly on Windows for basic tests. Installability an
 These are views within one app, so switching views does not reload the page. Each view receives the current data and shared helpers from `app.js`. To change a screen, start with its file in `js/views/`. No build step is needed. Upload the `css` and `js` folders along with the other site files when publishing.
 
 For repeatable checks, run `npm ci` followed by `npm test`. Node.js is needed only for development checks, not for publishing or using the website.
+
+## Task dependencies
+
+In a task editor, open **Parents / prerequisites** to choose tasks that must finish first, or **Dependent tasks** to link tasks that wait for this one. Links work across projects. Tasks waiting on unfinished parents stay out of the dashboard's ready queue and cannot be marked complete until their parents finish. Removing a task also removes its links.
+
+On a project page, choose **Task flowchart** to see parent-to-dependent arrows. Select any chart card to edit it. Connected tasks from other projects are included. Dependency loops are rejected; if separate offline edits introduce a loop, the chart shows a warning so you can remove it. The chart works offline with the rest of the app.

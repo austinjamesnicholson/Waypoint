@@ -260,10 +260,126 @@ test(
           .getAttribute("value"),
       );
       await phone.page.locator("#f_title").fill("Plant seeds");
+      await phone.page.screenshot({
+        path: ".build-tools/task-editor-focus.png",
+        fullPage: true,
+      });
       await phone.page.locator('[data-action="save"]').click();
       await expect(phone.page.locator(".task")).toContainText("GRDN-001");
       await expect(phone.page.locator("#cloud-root")).toContainText(
         "Saved to cloud",
+      );
+      const parentId = row.data.tasks.find((t) => t.title === "Plant seeds").id;
+      await phone.page.locator('.top [data-action="newTask"]').click();
+      await phone.page.locator("#f_title").fill("Water seedlings");
+      await phone.page
+        .getByText("Parents / prerequisites", { exact: true })
+        .click();
+      await phone.page
+        .locator(`input[name="parents"][value="${parentId}"]`)
+        .check();
+      await checkEditorFits(phone.page);
+      await expect(
+        phone.page.locator('.dialog-actions [data-action="close"]'),
+      ).toHaveCount(0);
+      await expect(
+        phone.page.getByRole("button", { name: "Cancel editing", exact: true }),
+      ).toHaveCount(1);
+      await phone.page.locator("#f_title").focus();
+      assert.ok(
+        await phone.page
+          .locator("#f_title")
+          .evaluate((el) => parseInt(getComputedStyle(el).outlineOffset) <= -2),
+      );
+      await phone.page.locator('[data-action="save"]').click();
+      await expect(
+        phone.page.locator(".task", { hasText: "Water seedlings" }),
+      ).toContainText("Waiting on 1 parent");
+      await expect(phone.page.locator("#cloud-root")).toContainText(
+        "Saved to cloud",
+      );
+      const childId = row.data.tasks.find(
+        (t) => t.title === "Water seedlings",
+      ).id;
+      assert.deepEqual(row.data.tasks.find((t) => t.id === childId).dependsOn, [
+        parentId,
+      ]);
+      await phone.page
+        .getByRole("button", { name: "Task flowchart", exact: true })
+        .click();
+      await expect(phone.page.locator(".flow-node")).toHaveCount(2);
+      await expect(phone.page.locator(".flow-edges path")).toHaveCount(1);
+      await phone.page.screenshot({
+        path: ".build-tools/task-flow-mobile.png",
+        fullPage: true,
+      });
+      await phone.page
+        .locator(`.flow-node[data-edit-task="${parentId}"]`)
+        .click();
+      await phone.page.getByText("Dependent tasks", { exact: true }).click();
+      await expect(
+        phone.page.locator(`input[name="dependents"][value="${childId}"]`),
+      ).toBeChecked();
+      await phone.page
+        .getByText("Parents / prerequisites", { exact: true })
+        .click();
+      await phone.page
+        .locator(`input[name="parents"][value="${childId}"]`)
+        .check();
+      phone.page.once("dialog", (d) => {
+        assert.match(d.message(), /dependency loop/);
+        return d.accept();
+      });
+      await phone.page.locator('[data-action="save"]').click();
+      await expect(
+        phone.page.locator("#modal-root .editor-dialog"),
+      ).toHaveCount(1);
+      await phone.page
+        .getByRole("button", { name: "Cancel editing", exact: true })
+        .click();
+      await phone.page
+        .getByRole("button", { name: "Back to project", exact: true })
+        .click();
+      phone.page.once("dialog", (d) => {
+        assert.match(d.message(), /parents first/);
+        return d.accept();
+      });
+      await phone.page.locator(`[data-complete="${childId}"]`).click();
+      await expect(
+        phone.page.locator(`[data-complete="${childId}"]`),
+      ).not.toBeChecked();
+      await phone.page.locator(`[data-complete="${parentId}"]`).check();
+      await expect(phone.page.locator(".task-completing")).toHaveCount(0);
+      await expect(
+        phone.page.locator(".task", { hasText: "Water seedlings" }),
+      ).not.toContainText("Waiting on");
+      await expect(phone.page.locator("#cloud-root")).toContainText(
+        "Saved to cloud",
+      );
+      await pc.page.locator('[data-cloud-action="account"]').click();
+      await pc.page.locator('[data-cloud-action="sync"]').click();
+      await pc.page.locator('[data-cloud-action="close"]').click();
+      await pc.page.locator('.mobile-nav [data-view="projects"]').click();
+      await pc.page.locator("[data-project]").click();
+      await pc.page
+        .getByRole("button", { name: "Task flowchart", exact: true })
+        .click();
+      await expect(pc.page.locator(".flow-node")).toHaveCount(2);
+      await expect(pc.page.locator(".flow-edges path")).toHaveCount(1);
+      await pc.page.setViewportSize({ width: 1280, height: 900 });
+      await pc.page.screenshot({
+        path: ".build-tools/task-flow-desktop.png",
+        fullPage: true,
+      });
+      await phone.page.locator(`[data-edit-task="${parentId}"]`).click();
+      phone.page.once("dialog", (d) => d.accept());
+      await phone.page.locator('[data-action="delete"]').click();
+      await expect(phone.page.locator("#cloud-root")).toContainText(
+        "Saved to cloud",
+      );
+      assert.deepEqual(
+        row.data.tasks.find((t) => t.id === childId).dependsOn,
+        [],
       );
       await phone.page.locator('[data-cloud-action="account"]').click();
       await phone.page.locator('[data-cloud-action="signout"]').click();

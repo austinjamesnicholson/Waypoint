@@ -1,12 +1,14 @@
-const CACHE = "waypoint-v8-editor-layout-20261123";
+const CACHE = "waypoint-v9-dependencies-20261123";
 const ASSETS = [
   "./",
   "./index.html",
   "./css/styles.css",
+  "./js/dependencies.js",
   "./js/views.js",
   "./js/views/dashboard.js",
   "./js/views/projects.js",
   "./js/views/project-detail.js",
+  "./js/views/project-flow.js",
   "./js/views/tasks.js",
   "./js/views/inbox.js",
   "./js/config.js",
