@@ -594,7 +594,7 @@
   // EVENTS: one listener handles interactions on dynamically rendered screens.
   window.addEventListener("click", (e) => {
     let b = e.target.closest(
-      "[data-view],[data-action],[data-project],[data-edit-task],[data-edit-project],[data-add-to-project],[data-complete]",
+      "[data-view],[data-action],[data-project-flow],[data-project],[data-edit-task],[data-edit-project],[data-add-to-project],[data-complete]",
     );
     if (!b) {
       if (e.target.id === "backdrop") close();
@@ -607,6 +607,12 @@
     }
     if (b.dataset.editTask) {
       openTask(b.dataset.editTask);
+      return;
+    }
+    if (b.dataset.projectFlow) {
+      projectFilter = b.dataset.projectFlow;
+      view = "flow";
+      draw();
       return;
     }
     if (b.dataset.project) {

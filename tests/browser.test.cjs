@@ -246,7 +246,21 @@ test(
       await checkEditorFits(phone.page);
       await phone.page.locator("#f_shorthand").fill("GRDN");
       await phone.page.locator('[data-action="save"]').click();
-      await phone.page.locator("[data-project]").click();
+      await expect(
+        phone.page.getByRole("button", {
+          name: "View task flowchart",
+          exact: true,
+        }),
+      ).toBeVisible();
+      await phone.page
+        .getByRole("button", { name: "View task flowchart", exact: true })
+        .click();
+      await expect(phone.page.locator(".main")).toContainText(
+        "Add tasks to this project",
+      );
+      await phone.page
+        .getByRole("button", { name: "Back to project", exact: true })
+        .click();
       await expect(
         phone.page.getByRole("button", {
           name: "+ Task in project",
@@ -289,7 +303,11 @@ test(
       assert.ok(
         await phone.page
           .locator("#f_title")
-          .evaluate((el) => parseInt(getComputedStyle(el).outlineOffset) <= -2),
+          .evaluate(
+            (el) =>
+              getComputedStyle(el).outlineStyle === "none" &&
+              getComputedStyle(el).boxShadow.includes("inset"),
+          ),
       );
       await phone.page.locator('[data-action="save"]').click();
       await expect(

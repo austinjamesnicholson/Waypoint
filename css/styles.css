@@ -697,3 +697,212 @@ input[type="date"] {
     background: #65cf8a20;
   }
 }
+
+/* Keep the primary action beside the title at every screen size. */
+.main > .top > .top-heading {
+  width: 100%;
+  min-width: 0;
+}
+.title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.title-row .title {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.title-row .top-actions {
+  display: flex;
+  width: auto;
+  flex: 0 0 auto;
+}
+.title-row .task-action {
+  width: auto;
+}
+/* Form controls must shrink to their grid cell, including native date inputs. */
+.dialog {
+  min-width: 0;
+  overflow-x: hidden;
+}
+.dialog .top > div {
+  min-width: 0;
+}
+.dialog h2 {
+  overflow-wrap: anywhere;
+}
+.dialog .form-grid,
+.dialog .group {
+  min-width: 0;
+  max-width: 100%;
+}
+.dialog input,
+.dialog select,
+.dialog textarea {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+.dialog textarea {
+  resize: vertical;
+}
+.editor-dialog > .form-grid {
+  overflow-x: hidden;
+  padding: 2px 6px 2px 2px;
+}
+/* Keep the focus highlight inside the control, away from clipping edges. */
+.dialog input:focus,
+.dialog select:focus,
+.dialog textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+.dialog input:hover,
+.dialog select:hover,
+.dialog textarea:hover {
+  border-color: var(--accent);
+}
+.editor-dialog > .top {
+  position: relative;
+  display: flex;
+  padding-right: 44px;
+}
+.editor-close {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 30px;
+  line-height: 1;
+}
+.editor-close:hover {
+  color: var(--text);
+  background: var(--panel2);
+}
+.dependency-fields {
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.dependency-fields legend {
+  color: var(--text);
+  font-size: 14px;
+  padding: 0 4px;
+}
+.dependency-fields summary {
+  cursor: pointer;
+  padding: 10px 0;
+  font-size: 14px;
+}
+.dependency-options {
+  max-height: 190px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 3px;
+}
+.dependency-fields .dependency-choice {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  color: var(--text);
+  font-weight: 400;
+}
+.dialog .dependency-choice input {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+.dependency-choice span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  line-height: 1.5;
+}
+.flow-viewport {
+  width: 100%;
+  overflow: auto;
+  max-height: 70vh;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--bg);
+}
+.flow-canvas {
+  position: relative;
+  margin: 0 auto;
+}
+.flow-canvas svg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.flow-edges path {
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 2;
+}
+#flow-arrow path {
+  fill: var(--muted);
+}
+.flow-node {
+  position: absolute;
+  width: 224px;
+  height: 112px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 7px;
+  padding: 12px;
+  text-align: left;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  color: var(--text);
+}
+.flow-node:hover {
+  border-color: var(--accent);
+}
+.flow-node strong {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  font-size: 14px;
+}
+.flow-node > span {
+  color: var(--muted);
+  font-size: 11px;
+}
+.flow-node.is-done {
+  border-color: var(--accent);
+  background: var(--accent2);
+}
+.flow-node.is-blocked {
+  border-color: var(--warn);
+}
+.project-card {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.project-card .project {
+  width: 100%;
+  flex: 1;
+}
+.project-flow-link {
+  align-self: flex-start;
+}

@@ -1,13 +1,13 @@
-const CACHE = "waypoint-v9-dependencies-20261123";
+const CACHE = "waypoint-v10-flow-focus-20261124";
 const ASSETS = [
   "./",
   "./index.html",
-  "./css/styles.css",
+  "./css/styles.css?v=20261124",
   "./js/dependencies.js",
   "./js/views.js",
   "./js/views/dashboard.js",
-  "./js/views/projects.js",
-  "./js/views/project-detail.js",
+  "./js/views/projects.js?v=20261124",
+  "./js/views/project-detail.js?v=20261124",
   "./js/views/project-flow.js",
   "./js/views/tasks.js",
   "./js/views/inbox.js",
@@ -15,7 +15,7 @@ const ASSETS = [
   "./js/vendor/supabase.js",
   "./js/sync.js",
   "./js/cloud.js",
-  "./js/app.js",
+  "./js/app.js?v=20261124",
   "./js/pwa.js",
   "./manifest.webmanifest",
   "./icons/icon-192.png",
